@@ -1,27 +1,221 @@
-<!DOCTYPE HTML>
-<html lang="pt-br">
+<!doctype html>
+<html>
 	<head>
-	<title></title>
-	<meta charset="UTF-8">
-	<meta name="viewport" content="width=device-width, initial-scale 1.0">
-	<meta name="descripition" content="jogo canvas">
-	<link rel="stylesheet" href="css/styles.css">
-	
-			<h1>salve aaaaa</h1>
-	<style>
+		<meta charset="utf-8" />
+		<title>minigame</title>
+		<link rel="shortcut icon" href="icon.png">
+		<link rel="Stylesheet" type="text/css" href="estilo.css"/>
+		<style>
 
-	</style>    
-
+		</style>
 	</head>
-
-
 	<body>
-		<canvas width=1280 height=720 id="game-canvas"></canvas>
-		<script type='text/javascript' src='js/main.js'></script>
-		<script type='text/javascript' src='js/player.js'></script>
-		<script type='text/javascript' src='js/border.js'></script>
-		<h3>Use W, A, S, D para controlar o personagem<br>
-		Aperte F5 caso o personagem caia no void</h3>
+		<div id="titulo">
+			<h1><font face="sans-serif">D>E>S>E>R>T R>U>N</font></h1>
+
+		</div>
+	<script>
+		//variáveis do jogo
+        var canvas, ctx, height, width, image, frames = 0, maxPulos = 2, velocidade = 6,
+		estadoAtual,
+		
+		
+		
+		estados = {
+		    jogar:0,
+			jogando:1,
+			perdeu:2,
+		
+		},
+		
+		chao ={
+		    y:550,
+			height:100,
+			color:"yellow",
+			
+			draw: function(){
+			    ctx.fillStyle = this.color;
+				ctx.fillRect(0, this.y, width, this.height);
+			}
+		},
+		
+		bloco ={
+			
+        	x:50,
+       		y:0,
+     		height:100,
+            width:50,
+			color:"red",
+			
+            gravidade:1.5,
+            velocidade:0,
+			forcaDoPulo:23.6,
+			qntPulos:0,
+
+            atualiza:function(){
+                this.velocidade += this.gravidade;
+                this.y += this.velocidade;
+				
+				if(this.y > chao.y - this.height && estadoAtual != estados.perdeu){
+				    this.y = chao.y - this.height;
+					this.qntPulos = 0;
+					this.velocidade = 0;
+;				}
+            },	
+       		pula:function(){
+			    if(this.qntPulos < maxPulos){
+                    this.velocidade = -this.forcaDoPulo;
+				    this.qntPulos++;
+				}
+            },			
+
+        draw:function(){
+            ctx.fillStyle=this.color;
+            ctx.fillRect(this.x, this.y, this.width, this.height);
+        }			
+		},
+		
+		obstaculos = {
+		    _obs:[],
+			cores:["#0e4d00", "#0e4d00", "#0e4d00", "##0e4d00", "#0e4d00"],
+			tempoInsere:0,
+			
+			insere: function(){
+			    this._obs.push({
+				    x: width,
+					width: 30 + Math.floor(20 * Math.random()),	
+           			height: 30 + Math.floor(120 * Math.random()),
+					color:this.cores[Math.floor(5 * Math.random())]
+				});
+				
+				this.tempoInsere = 40 + Math.floor(21 * Math.random());
+			},
+			
+			atualiza: function(){
+			    if (this.tempoInsere == 0){
+				    this.insere();
+				}
+				
+				else{
+				    this.tempoInsere--;
+			    }
+			
+			    for(var i = 0, tam = this._obs.length; i < tam; i++){
+				    var obs = this._obs[i];
+					
+					obs.x -= velocidade;
+					
+					if(bloco.x < obs.x + obs.width && bloco.x + bloco.width >= obs.x && bloco.y + bloco.height >= chao.y - obs.height){
+						estadoAtual = estados.perdeu;
+					}
+					
+					else if(obs.x <= - obs.width){
+					    this._obs.splice(i, 1);
+						tam--;
+						i--;
+					}
+				
+				}
+			},
+			
+			limpa: function(){
+				this._obs = [];
+			},
+			
+			draw: function(){
+			    for(var i = 0, tam = this._obs.length; i < tam; i++){
+				    var obs = this._obs[i];
+					ctx.fillStyle = obs.color;
+					ctx.fillRect(obs.x, chao.y - obs.height, obs.width, obs.height);
+					
+				}
+			
+			}
+			
+		};
+
+		function clique(event) {
+			if(estadoAtual == estados.jogando){
+				bloco.pula();
+			}
+			else if (estadoAtual == estados.jogar){
+				estadoAtual = estados.jogando;
+			}
+			else if (estadoAtual == estados.perdeu && bloco.y >= 2 * height){
+				estadoAtual = estados.jogar;
+				bloco.velocidade = 0;
+				bloco.y = 0;
+			}
+		 
+		}
+
+		function main() {
+			height = window.innerHeight;
+			width = window.innerWidth;
+
+			if (width >= 500) {
+				width = 1200;
+				height = 650;
+			}
+
+			canvas = document.createElement("canvas");
+			canvas.width = width;
+			canvas.height = height;
+			canvas.style.border = "5px solid gray";
+
+			ctx = canvas.getContext("2d");
+			document.body.appendChild(canvas);
+			document.addEventListener("mousedown", clique);
+			
+			estadoAtual = estados.jogar;
+			roda();
+		}
+
+		function roda() {
+			atualiza();
+			draw();
+
+			window.requestAnimationFrame(roda);
+		}
+
+		function atualiza() {
+			frames++;
+			
+			bloco.atualiza();
+		
+			if(estadoAtual == estados.jogando){
+				obstaculos.atualiza();  
+			}
+			else if (estadoAtual == estados.perdeu){
+			    obstaculos.limpa();
+            }			
+				
+		}    
+
+		function draw() {
+		    ctx.fillStyle = "#e2e6bc";
+		    ctx.fillRect(0, 0, width, height);
+			
+			if (estadoAtual == estados.jogar){
+			    ctx.fillStyle = "#e2e6bc";
+				ctx.fillRect(width / 2 - 50, height / 2 - 50, 100, 100);
+			}
+			
+			else if (estadoAtual == estados.perdeu){
+			    ctx.fillStyle = "#e2e6bc";
+				ctx.fillRect(width / 2 - 50, height / 2 - 50, 100, 100);
+			}
+			
+			else if (estadoAtual == estados.jogando)
+			    obstaculos.draw();
+				
+		    chao.draw();
+			bloco.draw();
+			
+        }
+		
+		main();
+	</script>
+	<h1><font face="sans-serif">click to start<br>click twice to jump</font></h1>
 	</body>
-	
 </html>
